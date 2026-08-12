@@ -8,7 +8,7 @@ export default function CardsGrid({ data, renderReason }) {
       <ul className={classes.CardsGrid__List}>
         {data.length > 0 ? (
           data.map((card) => (
-            <Card key={card.cca3} data={card} renderReason={renderReason} />
+            <Card key={card.flag} data={card} renderReason={renderReason} />
           ))
         ) : renderReason === "pageloading" ? (
           <LoadingGrid />

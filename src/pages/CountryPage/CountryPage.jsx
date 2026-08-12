@@ -7,149 +7,132 @@ import axios from "axios";
 import LoadingGrid from "../../components/LoadingGrid/LoadingGrid";
 
 export default function CountryPage() {
-  const { cca3 } = useParams();
+  const { code } = useParams();
 
   const [country, setCountry] = useState(null);
 
   useEffect(() => {
-    const storedCountries = JSON.parse(localStorage.getItem("countries"));
+    const storedCountries = JSON.parse(
+      localStorage.getItem("countries")
+    );
 
-    if (storedCountries) {
+    if (storedCountries?.length) {
       const targetCountry = storedCountries.find(
-        (country) => country.cca3.toLowerCase() === cca3.toLowerCase()
-      );
+  (country) =>
+    (country.alpha3Code || country.cioc)?.toLowerCase() ===
+    code.toLowerCase()
+);
+
       if (targetCountry) {
-        if (targetCountry.borders && targetCountry.borders.length > 0) {
-          const borderCountries = targetCountry.borders.map((cca3) => {
-            const borderCountry = storedCountries.find(
-              (country) => country.cca3 === cca3
-            );
-            return borderCountry ? borderCountry.name.common : cca3;
-          });
+        const borderCountries =
+  targetCountry.borders?.map((borderCode) => {
+    const borderCountry = storedCountries.find(
+      (country) => country.alpha3Code === borderCode
+    );
 
-          setCountry({ ...targetCountry, borders: borderCountries });
-        } else {
-          // If the country doesn't have any border countries, set the borders property to an empty array
-          setCountry({ ...targetCountry, borders: [] });
-        }
+    return borderCountry ? borderCountry.name : borderCode;
+  }) || [];
+
+        setCountry({
+          ...targetCountry,
+          borders: borderCountries,
+        });
       }
+
+      return;
     }
 
-    if (storedCountries === null || storedCountries.length === 0) {
-      const fetchCountryData = async () => {
-        try {
-          const response = await axios.get(
-            "https://restcountries.com/v3.1/alpha?codes=" + cca3.toUpperCase()
-          );
-          const fetchedCountry = response.data[0];
-          if (fetchedCountry.borders && fetchedCountry.borders.length > 0) {
-            const borderCountriesPromises = fetchedCountry.borders.map(
-              async (cca3) => {
-                try {
-                  const borderCountryResponse = await axios.get(
-                    `https://restcountries.com/v3.1/alpha?codes=${cca3.toUpperCase()}`
-                  );
-                  return borderCountryResponse.data[0]?.name?.common || cca3;
-                } catch (error) {
-                  console.error(error);
-                  return cca3;
-                }
-              }
-            );
+    const fetchCountryData = async () => {
+      try {
+        const response = await axios.get(
+          `https://countries.dev/alpha/${code}`
+        );
 
-            const borderCountries = await Promise.all(borderCountriesPromises);
-            setCountry({ ...fetchedCountry, borders: borderCountries });
-          } else {
-            // If the country doesn't have any border countries, set the borders property to an empty array
-            setCountry({ ...fetchedCountry, borders: [] });
-          }
-        } catch (error) {
-          console.error(error);
-        }
-      };
-      fetchCountryData();
-    }
-  }, [cca3]);
+        const fetchedCountry = response.data;
 
-  const uniqueNativeNames = useMemo(() => {
-    if (!country?.name.nativeName) return [];
-    const names = Object.values(country.name.nativeName)
-      .map((name) => name.common)
-      .filter((name, index, self) => self.indexOf(name) === index); // remove duplicates
-    return names.join(", ");
-  }, [country]);
+        setCountry(fetchedCountry);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchCountryData();
+  }, [code]);
 
   const currencies = useMemo(() => {
-    if (!country?.currencies) return [];
-    const currencyNames = Object.values(country.currencies).map(
-      (currency) => currency.name
-    );
-    return currencyNames.join(", ");
+    if (!country?.currencies) return "";
+
+    return country.currencies
+      .map((currency) => currency.name)
+      .join(", ");
   }, [country]);
 
-  const langs = useMemo(() => {
-    if (!country?.languages) return [];
-    const languages = Object.values(country.languages);
-    return languages.join(", ");
+  const languages = useMemo(() => {
+    if (!country?.languages) return "";
+
+    return country.languages
+      .map((language) => language.name)
+      .join(", ");
   }, [country]);
 
   return (
     <MainLayout>
       <BackButton />
+
       {country ? (
         <section className={classes.CountryDescription}>
           <img
-            src={country?.flags.svg}
-            alt={country?.name.common}
+            src={country.flags.svg}
+            alt={country.name}
             className={classes.CountryDescription__Flag}
           />
+
           <div className={classes.CountryDescription__Info}>
             <h2 className={classes.CountryDescription__Name}>
-              {country?.name.common}
+              {country.name}
             </h2>
+
             <ul className={classes.CountryDescription__List}>
               <li className={classes.CountryDescription__NativeName}>
-                <b>Native Name</b>: {uniqueNativeNames}
+                <b>Native Name</b>: {country.nativeName || "N/A"}
               </li>
+
               <li className={classes.CountryDescription__Population}>
-                <b>Population</b>: {country?.population.toLocaleString("uk-UA")}
+                <b>Population</b>:{" "}
+                {country.population.toLocaleString("uk-UA")}
               </li>
+
               <li className={classes.CountryDescription__Region}>
-                <b>Region</b>: {country?.region}
+                <b>Region</b>: {country.region}
               </li>
+
               <li className={classes.CountryDescription__SubRegion}>
-                <b>Sub Region</b>: {country?.subregion}
+                <b>Sub Region</b>: {country.subregion}
               </li>
+
               <li className={classes.CountryDescription__Capital}>
-                <b>Capital</b>:{" "}
-                {!country?.capital
-                  ? "N/A"
-                  : country.capital.length === 1
-                  ? country.capital
-                  : country.capital.join(", ")}
+                <b>Capital</b>: {country.capital || "N/A"}
               </li>
+
               <li className={classes.CountryDescription__Domain}>
                 <b>Top Level Domain</b>:{" "}
-                {!country?.tld
-                  ? "N/A"
-                  : country.tld.length === 1
-                  ? country.tld
-                  : country.tld.join(", ")}
+                {country.topLevelDomain?.join(", ") || "N/A"}
               </li>
+
               <li className={classes.CountryDescription__Currencies}>
-                <b>Currencies</b>: {currencies}
+                <b>Currencies</b>: {currencies || "N/A"}
               </li>
+
               <li className={classes.CountryDescription__Langs}>
-                <b>Languages</b>: {langs}
+                <b>Languages</b>: {languages || "N/A"}
               </li>
             </ul>
+
             <ul className={classes.CountryDescription__BorderCountriesList}>
               <b>Border Countries</b>:{" "}
-              {country?.borders.length < 1
-                ? "N/A"
-                : country.borders.length === 1
-                ? country.borders
-                : country.borders.join(", ")}
+              {!country.borders?.length
+  ? "N/A"
+  : country.borders.join(", ")}
             </ul>
           </div>
         </section>

@@ -20,13 +20,10 @@ export default function Home() {
       if (!storedDate || !isWithin3Days(new Date(storedDate))) {
         try {
           const response = await axios.get(
-            "https://restcountries.com/v3.1/all?name,flags,cca3,population,region,capital,subregion,tld,currencies,languages,borders"
+            "https://countries.dev/countries?sort=name"
           );
-          const sortedData = response.data.sort((a, b) =>
-            a.name.common.localeCompare(b.name.common)
-          );
-          storeDataAndDate(sortedData);
-          setData(sortedData);
+          storeDataAndDate(response.data);
+          setData(response.data);
         } catch (error) {
           console.error(error);
         }
@@ -55,7 +52,7 @@ export default function Home() {
 
   useEffect(() => {
     const filteredData = data.filter(
-      (country) => new RegExp(searchQuery, "i").test(country.name.common)
+      (country) => new RegExp(searchQuery, "i").test(country.name)
       // country.name.common.toLowerCase().includes(searchQuery)
     );
     setFilteredData(filteredData);
