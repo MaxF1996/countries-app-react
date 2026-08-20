@@ -4,7 +4,11 @@
 }
 
 .SearchInput {
-  min-width: 320px;
+  box-sizing: border-box;
+  min-width: 290px;
+  max-width: 350px;
+  width: 100%;
+
   border: 1px solid var(--font-color);
   border-radius: 5px;
 
